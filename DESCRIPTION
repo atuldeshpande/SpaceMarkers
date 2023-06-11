@@ -20,7 +20,7 @@ Imports:
     spatstat.geom,
     stats,
     utils,
-    ape,
+    moranfast,
     dplyr,
     hdf5r,
     jsonlite
