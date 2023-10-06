@@ -37,7 +37,10 @@ jobs:
           remotes::install_deps(dependencies = TRUE)
           BiocManager::install("BiocCheck")
         shell: Rscript {0}
-      - name: Check
+      - name: R CMD Check
         run: rcmdcheck::rcmdcheck(args = "--no-manual", error_on = "error")
+        shell: Rscript {0}
+      - name: bioccheck
         run: bioccheck()
         shell: Rscript {0}
+
