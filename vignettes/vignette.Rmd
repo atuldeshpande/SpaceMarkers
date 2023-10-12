@@ -113,7 +113,7 @@ These are combined with the latent features to demonstrate how cells for each
 pattern interact in 2D space.
 
 ```{r}
-download.file(sp_url, basename(sp_url))
+system2("wget",c("-q",sp_url))
 untar(basename(sp_url))
 spCoords <- load10XCoords(visiumDir = ".")
 rownames(spCoords) <- spCoords$barcode
