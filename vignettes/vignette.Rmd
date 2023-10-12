@@ -393,9 +393,7 @@ results of the enrichment analyses
 
 #### Comparing Enrichment Analyses
 For the purpose of this vignette, only the top20 genes returned from the
-enrichment analysis in DE mode will be compared. All of the genes from the 
-enrichment analysis in residual mode will be used as these are used in the 
-pathway enrichment later. 
+enrichment analysis in DE mode will be compared.
 
 ```{r}
 data("residual_p1_p5_enrichment_df")
