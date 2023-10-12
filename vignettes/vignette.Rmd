@@ -360,9 +360,9 @@ the specific biological question being answered and the data available.
 One new feature of the SpaceMarkers package is the type of analysis that can be
 carried out, whether 'overlap' or 'enrichment' mode. The major difference 
 between the two is that enrichment mode includes genes even if they did not 
-pass the multi-test correction for the KW test. These additional genes were 
-included to enable a more statistically powerful pathway enrichment analysis 
-and understand to a better extent the impact of genes involved each pathway. 
+pass the multi-test correction for the KW test. These additional genes may 
+enable a more statistically powerful pathway enrichment analysis and understand
+to a better extent the impact of genes involved each pathway. 
 
 ### Residual Mode and DE Mode - Enrichment
 
@@ -440,50 +440,6 @@ enrichment analysis. In DE mode, the additional genes do not impact the initial
 results of the KW test as much and the ranking with the post hoc Dunn's test
 is more consistent among the top genes.
 
-## Enrichment Analysis
-```{r message = FALSE, warning=FALSE}
-library(org.Hs.eg.db)
-library(clusterProfiler)
-library(enrichplot)
-library(ggplot2)
-```
-
-In this particular analysis we will use the 'enrichment' genes for residual mode
-as a background and the 'overlap' genes to search for pathway enrichment.
-```{r}
-
-matx2<-AnnotationDbi::select(
-    org.Hs.eg.db, keys=residual_p1_p2_enrich[,"Gene"],
-    columns=c("ENTREZID","GENENAME"), keytype="ALIAS")
-etz_df <- merge(x=matx2[-which(duplicated(matx2$ALIAS)),],
-                y=residual_p1_p2_enrich,by.x="ALIAS",by.y="Gene",all.x=TRUE)
-etz_df <- etz_df[!is.na(etz_df$ENTREZID),]
-etz_df <- etz_df[!duplicated(etz_df$ENTREZID),]
-original_gene_list <- etz_df$SpaceMarkersMetric
-# name the vector
-names(original_gene_list) <- etz_df$ENTREZID
-
-# omit any NA values 
-universe <- na.omit(original_gene_list)
-universe <- universe[!duplicated(universe)]
-# sort the list in decreasing order (required for clusterProfiler)
-universe = sort(universe, decreasing = TRUE)
-
-#Regular Gene list
-target_genes<-AnnotationDbi::select(
-    org.Hs.eg.db, keys=residual_p1_p2[,"Gene"],
-    columns=c("ENTREZID","GENENAME"), keytype="ALIAS")
-gene_list <- target_genes$ENTREZID[ target_genes$ENTREZID %in% names(universe)]
-```
-
-
-```{r}
-gse <- enrichKEGG(gene =unique(gene_list), universe = names(universe))
-dotplot(gse, showCategory=15, x = 'Count', font.size = 8)
-```
-
-
-
 ## Comparing Patterns Spatially
 
 The differences between the gene interactions of Pattern_1 (immune cell) and 
@@ -507,6 +463,7 @@ library(dplyr)
 library(data.table)
 library(viridis)
 library(hrbrthemes)
+library(ggplot2)
 ```
 
 This first function below can visualize the locations of these patterns on a 
