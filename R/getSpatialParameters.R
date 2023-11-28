@@ -28,8 +28,8 @@ find_kernel_outliers_for_sensitivity <- function(pattern,locs,
     Kact<-(Kact-mKvec)/sKvec
     return(Kact)
 }
-
-getOptimalSigmaThresh <- function(pattern, locs,...){
+### Add sigVec and threshVec
+getOptimalSigmaThresh <- function(pattern, locs,sigVec,threshVec,...){
     visium.dist <- as.matrix(dist(locs))
     visium.dist.inv <-1/visium.dist
     diag(visium.dist.inv) <- 0
@@ -88,10 +88,11 @@ find_pattern_hotspots <- function(
         if (!exists('threshVec')){
             threshVec <- seq(1,3,0.1)
         }
-        params <- getOptimalSigmaThresh(spPatterns[,patternName], locs = spPatterns[,c("x","y")]) 
-    } 
-    sigmaPair <- params[1]
-    kernelthreshold <- params[2]
+        ### Added sigVec and threshVec
+        params <- getOptimalSigmaThresh(spPatterns[,patternName], locs = spPatterns[,c("x","y")],sigVec,threshVec)
+    }   
+    sigmaPair <- params[[1]]
+    kernelthreshold <- params[[2]]
     
     allwin <- spatstat.geom::owin(
         xrange = c(min(spPatterns$x),max(spPatterns$x)),yrange =c(
