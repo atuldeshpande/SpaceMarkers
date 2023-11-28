@@ -1,49 +1,7 @@
 ## author: Atul Deshpande
 ## email: adeshpande@jhu.edu
 
-find_pattern_hotspots <- function(
-        spPatterns, params = NULL,
-        patternName = "Pattern_1",
-        outlier = "positive",...){
-    if (is.null(params)){
-        sigmaPair <- 10
-        kernelthreshold <- 2
-    } else {
-        sigmaPair <- params["sigmaOpt"]
-        kernelthreshold <- params["threshOpt"]
-    }
-    
-    allwin <- spatstat.geom::owin(
-        xrange = c(min(spPatterns$x),max(spPatterns$x)),yrange =c(
-            min(spPatterns$y),max(spPatterns$y)))
-    patternVector <- as.matrix(spPatterns[,patternName])
-    X <-spatstat.geom::ppp(
-        x=spPatterns$x,y = spPatterns$y,window = allwin,marks = patternVector)
-    Kact1 <- spatstat.explore::Smooth(
-        X, at = "points", sigma = sigmaPair[1],leaveoneout = TRUE)
-    Karr1 <- vapply(seq(1,100),function(i){
-        Xr<-X;
-        spatstat.geom::marks(Xr) <- spatstat.geom::marks(X)[pracma::randperm(
-            seq_len(length(spatstat.geom::marks(
-                X))))];temp <- spatstat.explore::Smooth(
-                    Xr, at="points", sigma = sigmaPair[1],leaveoneout=TRUE); 
-                return(temp)}, numeric(length(Kact1)))
-    Karr1 <- unlist(Karr1)
-    mKvec <- mean(Karr1)
-    sKvec <- sd(Karr1)
-    upthresh <- mKvec+kernelthreshold*sKvec
-    lothresh <- mKvec-kernelthreshold*sKvec
-    if (outlier == "positive"){
-        ind1 <- which(Kact1 > upthresh[1])
-    }
-    else if (outlier == "two.sided")
-    {
-        ind1 <- which((Kact1 > upthresh)|(Kact1 < lothresh))
-    }
-    region <- array(NA, length(Kact1))
-    region[ind1] <- patternName
-    return(region)
-}
+
 gettestMat <- function(data,reconstruction,mode){
     if (mode=="residual"){
         if (is.null(reconstruction))

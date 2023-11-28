@@ -5,8 +5,6 @@
 #' @import utils
 #import description end
 
-
-
 ## author: Atul Deshpande
 ## email: adeshpande@jhu.edu
 
@@ -80,8 +78,6 @@ return(cbind(zVals,pvals))
 #' @return a list of genes exhibiting significantly higher values of testMat in 
 #' the Interaction region of the two #' patterns compared to regions with 
 #' exclusive influence from either pattern.
-
-
 
 find_genes_of_interest<-function(
         testMat,goodGenes=NULL,region, fdr.level=0.05,

@@ -35,9 +35,8 @@ transcriptomics dataset.
 ## Installation
 
 ```{r, eval = FALSE}
-#install.packages("remotes")
-#remotes::install_github("FertigLab/SpaceMarkers",dependencies=TRUE,
-#build_vignettes = TRUE)
+install.packages("remotes")
+remotes::install_github("FertigLab/SpaceMarkers",dependencies=TRUE,build_vignettes = TRUE)
 ```
 
 ## Importing Libraries
@@ -176,6 +175,9 @@ SpaceMarkersRefPattern = "Pattern_1"
 
 ```{r eval = FALSE}
 optParams <- getSpatialParameters(spPatterns)
+```
+```{r}
+test <- find_pattern_hotspots(spPatterns)
 ```
 
 ```{r}

@@ -4,26 +4,24 @@
 #import description end
 0
 
-
-
 ## author: Atul Deshpande
 ## email: adeshpande@jhu.edu
 
 find_kernel_outliers_for_sensitivity <- function(pattern,locs,
-                                                    pattern_threshold=0.15,
-                                                sigma = 10,kernelthreshold = 2,
-                                                method = "Pattern_Threshold",
-                                                outlier = "positive",...)
+                                                 pattern_threshold=0.15,
+                                                 sigma = 10,kernelthreshold = 2,
+                                                 method = "Pattern_Threshold",
+                                                 outlier = "positive",...)
 {
     allwin<-spatstat.geom::owin(xrange = c(min(locs$x),max(locs$x)),
-                                    yrange=c(min(locs$y),max(locs$y)))
+                                yrange=c(min(locs$y),max(locs$y)))
     X<-spatstat.geom::ppp(x=locs$x,y=locs$y,window=allwin,marks=pattern)
     Kact<-spatstat.explore::Smooth(X,at ="points",sigma=sigma,leaveoneout=TRUE)
     Karr<-vapply(seq(1,100), function(i){Xr<-X;
     spatstat.geom::marks(Xr)<-spatstat.geom::marks(X)[pracma::randperm(
         seq_len(length(spatstat.geom::marks(X))))];
     temp<-spatstat.explore::Smooth(Xr,at="points",sigma=sigma,leaveoneout=TRUE);
-        return(temp)}, numeric(length(Kact)))
+    return(temp)}, numeric(length(Kact)))
     Kvec <- unlist(Karr)
     mKvec <- mean(Kvec)
     sKvec <- sd(Kvec)
@@ -31,35 +29,35 @@ find_kernel_outliers_for_sensitivity <- function(pattern,locs,
     return(Kact)
 }
 
-getOptimalSigmaThresh <- function(pattern, locs, sigVec, threshVec,...){
+getOptimalSigmaThresh <- function(pattern, locs,...){
     visium.dist <- as.matrix(dist(locs))
     visium.dist.inv <-1/visium.dist
     diag(visium.dist.inv) <- 0
     allwin<-spatstat.geom::owin(xrange=c(min(locs$x),max(locs$x)),
-                                    yrange=c(min(locs$y),max(locs$y)))
+                                yrange=c(min(locs$y),max(locs$y)))
     X<-spatstat.geom::ppp(x=locs$x,y=locs$y,window=allwin,marks=pattern)
     Ks<-vapply(sigVec,function(i) spatstat.explore::Smooth(X,at="points",
-                                                            sigma=i,
-                                                            leaveoneout=TRUE),
-                                                            numeric(X$n))
+                                                           sigma=i,
+                                                           leaveoneout=TRUE),
+               numeric(X$n))
     mor_1<-vapply(seq_len(length(sigVec)),function(i) unlist(ape::Moran.I(
         spatstat.geom::marks(X)-Ks[,i], visium.dist.inv)),numeric(4))
     sigOpt1_ind <- which.min(abs(unlist(mor_1[1,])-unlist(mor_1[2,])))
     if (sigOpt1_ind>1&&sigOpt1_ind<length(sigVec)){
         smallsigVec<-seq(sigVec[sigOpt1_ind-1],sigVec[sigOpt1_ind+1],
-                            (sigVec[sigOpt1_ind+1]-sigVec[sigOpt1_ind-1])/10)
+                         (sigVec[sigOpt1_ind+1]-sigVec[sigOpt1_ind-1])/10)
     }else if (sigOpt1_ind==1){
         smallsigVec <- seq(sigVec[sigOpt1_ind],sigVec[sigOpt1_ind+1],
-                            (sigVec[sigOpt1_ind+1] - sigVec[sigOpt1_ind])/10)
+                           (sigVec[sigOpt1_ind+1] - sigVec[sigOpt1_ind])/10)
     }else{
         smallsigVec <- seq(sigVec[sigOpt1_ind-1],sigVec[sigOpt1_ind],
-                            (sigVec[sigOpt1_ind] - sigVec[sigOpt1_ind-1])/10)
+                           (sigVec[sigOpt1_ind] - sigVec[sigOpt1_ind-1])/10)
     }
     smallKs<-vapply(smallsigVec,function(i) spatstat.explore::Smooth(
-            X,at="points", sigma = i, leaveoneout = TRUE), numeric(X$n))
+        X,at="points", sigma = i, leaveoneout = TRUE), numeric(X$n))
     smallmor_2<-vapply(seq_len(length(smallsigVec)), function(i) unlist(
-            ape::Moran.I(spatstat.geom::marks(X)-smallKs[,i],visium.dist.inv)),
-            numeric(4))
+        ape::Moran.I(spatstat.geom::marks(X)-smallKs[,i],visium.dist.inv)),
+        numeric(4))
     sigOpt1_ind <- which.min(abs(unlist(smallmor_2[1,])-unlist(smallmor_2[2,])))
     Kact2<-find_kernel_outliers_for_sensitivity(pattern=pattern,locs=locs,
                                                 sigma=smallsigVec[sigOpt1_ind],
@@ -75,50 +73,54 @@ getOptimalSigmaThresh <- function(pattern, locs, sigVec, threshVec,...){
     return(data.frame(
         sigmaOpt=smallsigVec[sigOpt1_ind],threshOpt=threshVec[threshOpt1_ind]))
 }
-#===================
-#' getSpatialParameters
-#' Calculate the Optimal Parameters for Interacting Cells
-#'
-#' This function calculates the optimal width of the gaussian distribution 
-#' (sigmaOpt) as well as the outlier threshold around the set of spots 
-#' (thresOpt) for each pattern from a latent feature space.
-#'
-#' @export
-#'
-#' @param spatialPatterns  A data frame that contains the spatial coordinates 
-#' for each cell type. The column names must include 'x' and 'y' as well as a 
-#' set of numbered columns named  'Pattern_1.....N'.
-#' @param ... Arguments passed to methods
-#' @return a numeric matrix of sigmaOpts - the optimal width of the gaussian 
-#' distribution, and the thresOpt - outlier threshold around the set of spots 
-#' for each pattern
-#' @examples
-#' # Create test data
-#' cells <- c()
-#' test_num <- 500
-#' for(i in 1:test_num){
-#'     cells[length(cells)+1] <- paste0("cell_",i)
-#' }
-#' spPatterns <- data.frame(barcode = cells,
-#' y = runif(test_num, min=0, max=test_num),
-#' x = runif(test_num, min=0, max=test_num),
-#' Pattern_1 = runif(test_num, min=0, max=1),
-#' Pattern_2 = runif(test_num, min=0, max=1) )
-#' # Call the getSpatialParameters function with the test data
-#' optParams <- getSpatialParameters(spPatterns)
-#'
 
-getSpatialParameters <- function(spatialPatterns,...){
-    good_gene_threshold <- 3;
-    sigmaRes <- max(floor(min(diff(range(spatialPatterns$x)),
-                                diff(range(spatialPatterns$y)))/250),1)
-    sigVec <- seq(2,40*sigmaRes,sigmaRes)
-    threshVec <- seq(1,3,0.1)
-    patternList <- colnames(spatialPatterns)[
-        startsWith(colnames(spatialPatterns),"Pattern_")]
-    optParams<-vapply(patternList,function(i) unlist(getOptimalSigmaThresh(
-        pattern=spatialPatterns[,i],locs=data.frame(
-        x=spatialPatterns$x,y=spatialPatterns$y),sigVec,threshVec)),numeric(2))
-    return(optParams)
+find_pattern_hotspots <- function(
+        spPatterns, params = NULL,
+        patternName = "Pattern_1",
+        outlier = "positive",...){
+    
+    if (is.null(params)){
+        if (!exists('sigVec')){
+            sigmaRes <- max(floor(min(diff(range(spPatterns$x)),
+                                      diff(range(spPatterns$y)))/250),1)
+            sigVec <- seq(2,40*sigmaRes,sigmaRes)
+        }
+        if (!exists('threshVec')){
+            threshVec <- seq(1,3,0.1)
+        }
+        params <- getOptimalSigmaThresh(spPatterns[,patternName], locs = spPatterns[,c("x","y")]) 
+    } 
+    sigmaPair <- params[1]
+    kernelthreshold <- params[2]
+    
+    allwin <- spatstat.geom::owin(
+        xrange = c(min(spPatterns$x),max(spPatterns$x)),yrange =c(
+            min(spPatterns$y),max(spPatterns$y)))
+    patternVector <- as.matrix(spPatterns[,patternName])
+    X <-spatstat.geom::ppp(
+        x=spPatterns$x,y = spPatterns$y,window = allwin,marks = patternVector)
+    Kact1 <- spatstat.explore::Smooth(
+        X, at = "points", sigma = sigmaPair[1],leaveoneout = TRUE)
+    Karr1 <- vapply(seq(1,100),function(i){
+        Xr<-X;
+        spatstat.geom::marks(Xr) <- spatstat.geom::marks(X)[pracma::randperm(
+            seq_len(length(spatstat.geom::marks(
+                X))))];temp <- spatstat.explore::Smooth(
+                    Xr, at="points", sigma = sigmaPair[1],leaveoneout=TRUE); 
+                return(temp)}, numeric(length(Kact1)))
+    Karr1 <- unlist(Karr1)
+    mKvec <- mean(Karr1)
+    sKvec <- sd(Karr1)
+    upthresh <- mKvec+kernelthreshold*sKvec
+    lothresh <- mKvec-kernelthreshold*sKvec
+    if (outlier == "positive"){
+        ind1 <- which(Kact1 > upthresh[1])
+    }
+    else if (outlier == "two.sided")
+    {
+        ind1 <- which((Kact1 > upthresh)|(Kact1 < lothresh))
+    }
+    region <- array(NA, length(Kact1))
+    region[ind1] <- patternName
+    return(region)
 }
-
