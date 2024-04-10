@@ -613,9 +613,9 @@ for (g in gene_list){
             geom_point(shape = 21, colour = "black", size = 1.1, stroke = 0.2)+
             coord_cartesian(expand=FALSE)+scale_fill_gradientn(
                 colours = myPalette(100))+xlim(0,max(bcs_merge %>%dplyr::filter(
-                    sample ==sample_names[i]) %>% select(width)))+ylim(max(
-                        bcs_merge %>%dplyr::filter(sample ==sample_names[i])%>%
-                            select(height)),0)+xlab("") +ylab("") + ggtitle(
+                    sample ==sample_names[i]) %>% dplyr::select(width)))+ylim(max(
+                        bcs_merge %>% dplyr::filter(sample ==sample_names[i])%>%
+                            dplyr::select(height)),0)+xlab("") +ylab("") + ggtitle(
                                 sample_names[i])+
             theme_set(theme_bw(base_size = 10))+
             theme(
@@ -748,6 +748,120 @@ individual latent Patterns interacting with each other. In other words, the
 vsBoth genes are ranked highest in the list, while the vsPattern_1 and 
 vsPattern_5 genes, which look at an individual Pattern interaction with another
 already interacting region, are ranked lower in the SpaceMarkers list.
+
+# Enrichment
+
+Here we will be looking at how to visualize the SpaceMarkersMetric as well as
+extracting pathway enrichment information for SpaceMarkers.Some of the analysis
+is adapted from: 
+https://learn.gencore.bio.nyu.edu/rna-seq-analysis/gene-set-enrichment-analysis/
+
+
+```{r}
+library(clusterProfiler)
+library(enrichplot)
+library(ggplot2)
+```
+
+```{r}
+plotInteractingGenes <- function(data,refPattern,interactPattern){
+  refPattern <- paste0("vs",refPattern)
+  interactPattern <- paste0("vs",interactPattern)
+  colnames(data)[2] = "interaction"
+  data <- data[order(data$SpaceMarkersMetric,decreasing = TRUE),]
+  data <- Reduce(rbind, by(data,data[,2],head,n = 10))
+  
+  if (FALSE %in% data[,2]){
+    data[which(data$interaction == FALSE),]$interaction <- "vsEither"
+    interaction_colors <- c("gold","red", "blue", "orange")
+    names(interaction_colors) <- c("vsBoth",refPattern,interactPattern,
+                                   "vsEither")
+  } else {
+    interaction_colors <- c("gold","red", "blue")
+    names(interaction_colors) <- c("vsBoth",refPattern,interactPattern)
+  }
+  
+  p <- quickplot(x = SpaceMarkersMetric, 
+                 y = reorder(Gene, SpaceMarkersMetric),
+                 data = data, geom = "point", color = interaction ) + 
+    facet_grid(interaction ~., scales = "free_y") + 
+    labs(title = "Top SpaceMarkers", x = "SpaceMarkersMetric", y = "Gene")+
+    theme(axis.text.y = element_text(size = 5)) + 
+    scale_color_manual(values = interaction_colors)
+  
+  return(p)
+}
+```
+
+## Visualize SpaceMarkers Metric
+
+```{r}
+plotInteractingGenes(SpaceMarkers_enrich$interacting_genes[[1]],refPattern = "Pattern_1",interactPattern ="Pattern_5")
+```
+
+
+## Sort Genes
+
+```{r}
+df <- SpaceMarkers_enrich$interacting_genes[[1]]
+# we want the log2 fold change 
+original_gene_list <- df$SpaceMarkersMetric
+
+# name the vector
+names(original_gene_list) <- df$Gene
+
+# omit any NA values 
+gene_list<-na.omit(original_gene_list)
+
+# sort the list in decreasing order (required for clusterProfiler)
+gene_list = sort(gene_list, decreasing = TRUE)
+```
+
+
+## Organism
+
+```{r eval = FALSE}
+BiocManager::install("org.Hs.eg.db")
+```
+```{r}
+# SET THE DESIRED ORGANISM HERE
+organism = "org.Hs.eg.db"
+library(organism, character.only = TRUE)
+```
+
+## GO
+
+```{r}
+gse <- gseGO(geneList=gene_list, 
+             ont ="ALL", 
+             keyType = "SYMBOL", 
+             nPerm = 10000, 
+             minGSSize = 3, 
+             maxGSSize = 800, 
+             pvalueCutoff = 0.05, 
+             verbose = TRUE, 
+             OrgDb = organism, 
+             pAdjustMethod = "none")
+
+```
+### Enrichment Plots
+
+```{r}
+dotplot(gse, showCategory=10, split=".sign") + facet_grid(.~.sign) + theme(axis.text.y = element_text(size=6))
+
+```
+
+```{r}
+ridgeplot(gse) + labs(x = "enrichment distribution") + theme(axis.text.y = element_text(size=4))
+```
+
+first gene set in gse ...
+
+```{r}
+# Use the `Gene Set` param for the index in the title, and as the value for geneSetId
+gseaplot(gse, by = "all", title = gse$Description[1], geneSetID = 1)
+```
+
 
 # Removing Directories
 
